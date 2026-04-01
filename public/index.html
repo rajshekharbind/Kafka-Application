@@ -1,0 +1,318 @@
+<!DOCTYPE html>
+<html lang="en">
+<head>
+    <meta charset="UTF-8">
+    <meta name="viewport" content="width=device-width, initial-scale=1.0">
+    <meta name="description" content="Modern Kafka Management Dashboard">
+    <title>Kafka Pro - Modern Kafka Management</title>
+    <link rel="stylesheet" href="style.css">
+</head>
+<body>
+    <div class="container">
+        <!-- Header -->
+        <header class="header">
+            <div class="header-content">
+                <h1>⚡ Kafka Application</h1>
+                <p>Modern Kafka Management Dashboard</p>
+            </div>
+            <div id="clusterInfo" class="cluster-info">
+                <div class="info-badge">
+                    <span class="badge-label">Status:</span>
+                    <span id="clusterStatus" class="badge-value" aria-live="polite">
+                        <span class="status-circle"></span>
+                        Checking...
+                    </span>
+                </div>
+                <div class="header-actions">
+                    <button id="showGuide" class="btn-icon" title="How to Use" aria-label="Show guide">❓</button>
+                    <button id="themeToggle" class="btn-icon" title="Toggle Theme" aria-label="Toggle theme">🌙</button>
+                </div>
+            </div>
+        </header>
+
+        <!-- How to Use Modal/Guide -->
+        <div id="guideModal" class="modal hidden">
+            <div class="modal-content">
+                <div class="modal-header">
+                    <h2>📖 How to Use Kafka Pro</h2>
+                    <button class="modal-close" onclick="closeGuide()">&times;</button>
+                </div>
+                <div class="modal-body">
+                    <div class="guide-section">
+                        <h3>🔧 Cluster Information</h3>
+                        <p>View your Kafka cluster details including:</p>
+                        <ul>
+                            <li><strong>Brokers:</strong> Number of active broker nodes</li>
+                            <li><strong>Controller ID:</strong> Current cluster controller</li>
+                            <li><strong>Status:</strong> Real-time cluster health status</li>
+                        </ul>
+                    </div>
+
+                    <div class="guide-section">
+                        <h3>📑 Topics Management</h3>
+                        <p><strong>Create Topics:</strong></p>
+                        <ol>
+                            <li>Enter topic name (alphanumeric, dots, dashes)</li>
+                            <li>Set number of partitions (1-32)</li>
+                            <li>Set replication factor (1-3)</li>
+                            <li>Click "Create Topic"</li>
+                        </ol>
+                        <p><strong>Search Topics:</strong> Use the search bar to filter topics by name</p>
+                        <p><strong>Select Topic:</strong> Click any topic to auto-fill producer/consumer forms</p>
+                    </div>
+
+                    <div class="guide-section">
+                        <h3>📤 Producer (Send Messages)</h3>
+                        <ol>
+                            <li>Enter or select a topic name</li>
+                            <li>(Optional) Add a message key for partitioning</li>
+                            <li>Enter message value (text, JSON, etc.)</li>
+                            <li>Click "Send Message"</li>
+                            <li>View character count and validation feedback</li>
+                        </ol>
+                    </div>
+
+                    <div class="guide-section">
+                        <h3>📥 Consumer (Receive Messages)</h3>
+                        <ol>
+                            <li>Enter or select a topic name</li>
+                            <li>Enter consumer group name (auto-filled: default-group)</li>
+                            <li>Click "Start Consumer" to begin listening</li>
+                            <li>Messages will appear in real-time below</li>
+                            <li>Use search to find specific messages</li>
+                            <li>Click "Stop Consumer" to stop listening</li>
+                            <li>Click "Clear Messages" to remove all messages</li>
+                        </ol>
+                    </div>
+
+                    <div class="guide-section">
+                        <h3>💡 Tips</h3>
+                        <ul>
+                            <li>🔄 Auto-refresh happens every 10-15 seconds</li>
+                            <li>⚫ Green circle = Connected, Red circle = Disconnected</li>
+                            <li>🔍 Use search to filter topics and messages</li>
+                            <li>🌙 Toggle dark mode for comfortable viewing</li>
+                            <li>⏱️ Timestamps show when messages were received</li>
+                        </ul>
+                    </div>
+                </div>
+            </div>
+        </div>
+
+        <!-- Dashboard Grid -->
+        <main class="dashboard">
+            <!-- Quick Stats Section -->
+            <section class="card stats-section full-width">
+                <div class="card-header">
+                    <h2>📊 Quick Statistics</h2>
+                </div>
+                <div class="stats-grid">
+                    <div class="stat-card success">
+                        <div class="stat-icon">🏠</div>
+                        <div class="stat-info">
+                            <p class="stat-label">Total Topics</p>
+                            <p class="stat-value" id="statTopics">0</p>
+                        </div>
+                    </div>
+                    <div class="stat-card info">
+                        <div class="stat-icon">📤</div>
+                        <div class="stat-info">
+                            <p class="stat-label">Messages Sent</p>
+                            <p class="stat-value" id="statProduced">0</p>
+                        </div>
+                    </div>
+                    <div class="stat-card warning">
+                        <div class="stat-icon">📥</div>
+                        <div class="stat-info">
+                            <p class="stat-label">Messages Received</p>
+                            <p class="stat-value" id="statConsumed">0</p>
+                        </div>
+                    </div>
+                    <div class="stat-card primary">
+                        <div class="stat-icon">⚙️</div>
+                        <div class="stat-info">
+                            <p class="stat-label">Active Brokers</p>
+                            <p class="stat-value" id="statBrokers">0</p>
+                        </div>
+                    </div>
+                </div>
+            </section>
+
+            <!-- Detailed Cluster Section - Full Width Top -->
+            <section class="card cluster-section full-width">
+                <div class="card-header">
+                    <h2>🔗 Cluster Information</h2>
+                    <button class="btn btn-small" onclick="getClusterInfo()" id="clusterRefreshBtn">🔄 Refresh</button>
+                </div>
+                <div id="clusterDetails" class="cluster-details">
+                    <div class="cluster-grid">
+                        <div class="cluster-card">
+                            <div class="cluster-icon">⚙️</div>
+                            <div class="cluster-info">
+                                <p class="cluster-label">Number of Brokers</p>
+                                <p class="cluster-value" id="clusterBrokers">--</p>
+                            </div>
+                        </div>
+                        <div class="cluster-card">
+                            <div class="cluster-icon">👑</div>
+                            <div class="cluster-info">
+                                <p class="cluster-label">Controller ID</p>
+                                <p class="cluster-value" id="clusterController">--</p>
+                            </div>
+                        </div>
+                        <div class="cluster-card">
+                            <div class="cluster-icon">🔴</div>
+                            <div class="cluster-info">
+                                <p class="cluster-label">Cluster Status</p>
+                                <p class="cluster-value" id="clusterHealthStatus">--</p>
+                            </div>
+                        </div>
+                        <div class="cluster-card">
+                            <div class="cluster-icon">📊</div>
+                            <div class="cluster-info">
+                                <p class="cluster-label">Health Check</p>
+                                <p class="cluster-value" id="clusterHealthCheck">✓</p>
+                            </div>
+                        </div>
+                    </div>
+                    <p class="loading hidden" id="clusterLoading">Loading cluster information...</p>
+                </div>
+            </section>
+
+            <!-- Left Side: Topics Management -->
+            <section class="card topics-section left-panel">
+                <div class="card-header">
+                    <h2>📑 Topics Management</h2>
+                    <button class="btn btn-small" onclick="listTopics()" id="topicsRefreshBtn">🔄 Refresh</button>
+                </div>
+                
+                <!-- Create Topic Form -->
+                <div class="form-group">
+                    <h3>Create New Topic</h3>
+                    <form id="createTopicForm" onsubmit="createTopic(event)">
+                        <div class="form-row-vertical">
+                            <label for="topicName">Topic Name *</label>
+                            <input type="text" id="topicName" placeholder="my-topic" required>
+                        </div>
+                        <div class="form-row">
+                            <div class="form-col">
+                                <label for="partitions">Partitions</label>
+                                <input type="number" id="partitions" value="3" min="1" max="32">
+                            </div>
+                            <div class="form-col">
+                                <label for="replicationFactor">Replication</label>
+                                <input type="number" id="replicationFactor" value="1" min="1" max="3">
+                            </div>
+                        </div>
+                        <button type="submit" class="btn btn-primary btn-full">✨ Create Topic</button>
+                    </form>
+                    <div id="topicStatus" class="status-message" aria-live="polite"></div>
+                </div>
+
+                <!-- Topics List -->
+                <div class="form-group">
+                    <div class="search-bar">
+                        <input type="text" id="topicsSearch" placeholder="🔍 Search topics..." class="search-input">
+                    </div>
+                    <h3>Available Topics (<span id="topicsCount">0</span>)</h3>
+                    <div id="topicsList" class="topics-list topics-list-vertical">
+                        <p class="loading">Loading topics...</p>
+                    </div>
+                </div>
+            </section>
+
+            <!-- Right Side: Producer & Consumer -->
+            <div class="right-panel">
+                <!-- Producer Section -->
+                <section class="card producer-section">
+                    <div class="card-header">
+                        <h2>📤 Message Producer</h2>
+                    </div>
+                    
+                    <form id="producerForm" onsubmit="produceMessage(event)">
+                        <div class="form-group">
+                            <label for="producerTopic">Topic *</label>
+                            <input type="text" id="producerTopic" placeholder="Select or enter topic" required>
+                            <small class="helper-text">💡 Click any topic from the list to auto-fill</small>
+                        </div>
+                        
+                        <div class="form-group">
+                            <label for="messageKey">Message Key (Optional)</label>
+                            <input type="text" id="messageKey" placeholder="Optional key for partitioning">
+                            <small class="helper-text">🔑 Used to determine partition assignment</small>
+                        </div>
+                        
+                        <div class="form-group">
+                            <label for="messageValue">Message Value *</label>
+                            <textarea id="messageValue" placeholder="Enter your message here..." required></textarea>
+                            <small class="helper-text" id="charCount">0 characters</small>
+                        </div>
+                        
+                        <button type="submit" class="btn btn-primary btn-full" id="sendMessageBtn">✉️ Send Message</button>
+                    </form>
+
+                    <div id="producerStatus" class="status-message" aria-live="polite"></div>
+                </section>
+
+                <!-- Consumer Section -->
+                <section class="card consumer-section">
+                    <div class="card-header">
+                        <h2>📥 Message Consumer</h2>
+                    </div>
+                    
+                    <div class="consumer-controls">
+                        <div class="control-group">
+                            <label for="consumerTopic">Topic *</label>
+                            <input type="text" id="consumerTopic" placeholder="Select or enter topic">
+                        </div>
+
+                        <div class="control-group">
+                            <label for="consumerGroup">Consumer Group</label>
+                            <input type="text" id="consumerGroup" placeholder="app-group-1" value="default-group">
+                        </div>
+
+                        <div class="control-group control-buttons">
+                            <button class="btn btn-primary" onclick="startConsumer()" id="startConsumerBtn">▶️ Start</button>
+                            <button class="btn btn-danger" onclick="stopConsumer()" id="stopConsumerBtn" disabled>⏹️ Stop</button>
+                            <button class="btn btn-secondary" onclick="clearMessages()" id="clearMessagesBtn">🗑️ Clear</button>
+                        </div>
+                    </div>
+
+                    <div id="consumerStatus" class="status-message" aria-live="polite"></div>
+                </section>
+            </div>
+        </main>
+
+        <!-- Messages Full Width Section -->
+        <section class="card messages-section full-width">
+            <div class="card-header">
+                <h2>💬 Messages Queue</h2>
+            </div>
+
+            <div class="messages-container">
+                <div class="messages-header">
+                    <div>
+                        <h3>Received Messages</h3>
+                        <small class="consumer-status" id="consumerRunningStatus"></small>
+                    </div>
+                    <div class="messages-controls">
+                        <input type="text" id="messagesSearch" placeholder="🔍 Search messages..." class="search-small">
+                        <span id="messageCount" class="message-count">0 messages</span>
+                    </div>
+                </div>
+                <div id="messagesList" class="messages-list">
+                    <p class="empty-state">📭 No messages. Start consumer to receive.</p>
+                </div>
+            </div>
+        </section>
+                        
+        <!-- Footer -->
+        <footer class="footer">
+            <p>&copy; 2026 Kafka Pro. Modern Kafka Management Dashboard</p>
+            <p class="footer-info">Built with ❤️ for interactive Kafka operations</p>
+        </footer>
+    </div>
+
+    <script src="app.js"></script>
+</body>
+</html>
