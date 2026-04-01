@@ -12,11 +12,63 @@ A modern, responsive web-based Kafka management application with an intuitive UI
 - **Real-time Updates**: Auto-refresh cluster and topic information
 - **Message History**: View received messages with metadata (topic, partition, offset, key)
 
+##Demo-Application
+
+https://github.com/user-attachments/assets/64466070-d341-4fb8-86d5-b7ef532562df
+
+#hand on Experiences
+<img width="1902" height="735" alt="Screenshot 2026-04-01 143444" src="https://github.com/user-attachments/assets/6032fff7-99f7-4a6c-8227-e33bb334fdf5" />
+<img width="1774" height="594" alt="Screenshot 2026-04-01 144228" src="https://github.com/user-attachments/assets/f34fbdf4-a72e-487b-9526-b95a779673c7" />
+
+<img width="1876" height="838" alt="Screenshot 2026-04-01 091736" src="https://github.com/user-attachments/assets/58f3e2b0-c7b8-4797-a3f7-98b64f483410" />
+<img width="1884" height="1073" alt="Screenshot 2026-04-01 143332" src="https://github.com/user-attachments/assets/b9ef4dd4-3e3f-4de3-9c58-6c93dc32055e" />
+
+
+
 ## 📦 Installation
 
 1. **Navigate to the Kafka-App folder**:
 ```bash
 cd c:\Users\bramh\Kafka-App
+⚙️ Prerequisites
+
+Make sure you have installed:
+
+Node.js (>= 16)
+Docker & Docker Compose
+npm or yarn
+🐳 Step 1: Run Kafka using Docker
+
+Create a docker-compose.yml file:
+
+version: '3'
+services:
+  zookeeper:
+    image: confluentinc/cp-zookeeper:latest
+    environment:
+      ZOOKEEPER_CLIENT_PORT: 2181
+
+  kafka:
+    image: confluentinc/cp-kafka:latest
+    ports:
+      - "9092:9092"
+    environment:
+      KAFKA_ZOOKEEPER_CONNECT: zookeeper:2181
+      KAFKA_ADVERTISED_LISTENERS: PLAINTEXT://localhost:9092
+    depends_on:
+      - zookeeper
+
+Run:
+
+docker-compose up -d
+📦 Step 2: Install Dependencies
+npm install
+🔧 Step 3: Environment Setup
+
+Create .env file:
+
+KAFKA_BROKER=localhost:9092
+TOPIC_NAME=test-topic
 ```
 
 2. **Install dependencies**:
@@ -162,18 +214,40 @@ Kafka-App/
 - Safari (latest)
 - Edge (latest)
 
-## 📝 License
+📊 Kafka CLI Commands (Optional)
+# Create topic
+docker exec -it <kafka-container> kafka-topics --create \
+--topic test-topic --bootstrap-server localhost:9092
 
-ISC
+# List topics
+docker exec -it <kafka-container> kafka-topics --list \
+--bootstrap-server localhost:9092
 
-## 🤝 Contributing
+💻 Sample Code Snippet
+Producer Example
+await producer.send({
+  topic: 'test-topic',
+  messages: [{ value: 'Hello Kafka 🚀' }],
+});
+Consumer Example
+await consumer.run({
+  eachMessage: async ({ message }) => {
+    console.log(`Received: ${message.value.toString()}`);
+  },
+});
 
-Contributions are welcome! Feel free to submit issues and enhancement requests.
 
-## 📞 Support
+🧪 Example Workflow
+Start Docker Kafka
+Open 2 terminals
+Run producer in Terminal 1
+Run consumer in Terminal 2
+Send messages from producer
+Watch real-time output in consumer
 
-For issues or questions, please create an issue in the repository.
+▶️ Step 4: Run Producer & Consumer (2 Terminals)
+🖥️ Terminal 1 (Producer)
+node src/server.js producer
+🖥️ Terminal 2 (Consumer)
+node src/server.js consumer
 
----
-
-**Built with ❤️ for better Kafka management**
